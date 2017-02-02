@@ -1,6 +1,5 @@
 const request = require("request");
 const cheerio = require("cheerio");
-const isArray = require('isarray');
 
 exports.scrape = (config) => {
     return getHTML(config.url)
@@ -19,7 +18,7 @@ const parse = ($, config) => {
 const extract = ($, data) => {
     if (typeof data === "string")
         return getValue($, data, 'text');
-    else if (isArray(data))
+    else if (Array.isArray(data))
         return $(data[0]).map( (index, elem) => parse(cheerio.load(elem), data[1])).get();
     else
         return getValue($, data.selector, data.scrape[0], data.scrape[1]);

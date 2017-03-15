@@ -2,9 +2,23 @@ const request = require("request");
 const cheerio = require("cheerio");
 
 exports.scrape = (config) => {
-    return getHTML(config.url)
+    if (typeof config.url === "string")
+        return launch(config.url, config);
+    return Promise.all(config.url.map( url => launch(url, config)));
+};
+
+const launch = (url, config) => {
+    if (config.pagination) {
+        return getPaginatedHTML(url, config.pagination)
+            .then( (pages) => {
+                return Promise.all(pages.map(page => parse(page, config.data)));
+            })
+            .catch(err => console.error(err));
+    }
+    return getHTML(url)
         .then( cheerio.load )
         .then( html => parse(html, config.data))
+        .catch(err => console.error(err));
 };
 
 const parse = ($, config) => {
@@ -28,7 +42,29 @@ const getValue = ($, selector, attribute, param) => {
     return $(selector)[attribute](param);
 };
 
+const getPaginatedHTML = (url, pagination, acc = []) => {
+
+    return new Promise( (resolve, reject) => {
+        getHTML(url)
+            .then( cheerio.load)
+            .then( $ => {
+                acc.push($);
+                const nextButton = $(pagination);
+                if (nextButton.length > 0) {
+
+                    resolve(getPaginatedHTML(nextButton.attr('href'), pagination, acc))
+                }
+                else {
+                    resolve(acc);
+                }
+
+            })
+            .catch((err) => console.log("error : ", err));
+    })
+}
+
 const getHTML = (url) => {
+    console.log("Fecthing page : ", url);
     return new Promise((resolve, reject) => {
         request(url, (error, response, body) => {
             if (error)

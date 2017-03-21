@@ -1,5 +1,6 @@
 const request = require("request");
 const cheerio = require("cheerio");
+const URL = require("url");
 
 exports.scrape = (config) => {
     if (typeof config.url === "string")
@@ -51,8 +52,13 @@ const getPaginatedHTML = (url, pagination, acc = []) => {
                 acc.push($);
                 const nextButton = $(pagination);
                 if (nextButton.length > 0) {
-
-                    resolve(getPaginatedHTML(nextButton.attr('href'), pagination, acc))
+                    let previousURL = URL.parse(url);
+                    let nextURL = URL.parse(nextButton.attr('href'));
+                    if (nextURL.hostname === null) {
+                        nextURL.hostname = previousURL.hostname;
+                        nextURL.protocol = previousURL.protocol;
+                    }
+                    resolve(getPaginatedHTML(nextURL.format(), pagination, acc))
                 }
                 else {
                     resolve(acc);
